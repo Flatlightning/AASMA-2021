@@ -19,10 +19,12 @@ class Agent:
 
 
 class Taxi(Agent):
+
     def __init__(self, x, y, identifier):
         super().__init__(x, y)
         self.identifier = identifier
         self.state = TaxiState.free
+        self.taxi_list = []
 
     def __str__(self):
         return "Taxi " + super().__str__() + "; ID: " +\
@@ -42,11 +44,16 @@ class Taxi(Agent):
 
     def right(self):
         self.x += 1
+    
+    def find_path(self, goal_x, goal_y, size):
+        self.path = main_pathfinding(size, [self.x, self.y], [goal_x, goal_y])
 
 
 class Client(Agent):
-    def __init__(self, x, y):
+    def __init__(self, x, y, goal_x, goal_y):
         super().__init__(x, y)
+        self.goal_x = goal_x
+        self.goal_y = goal_y
 
     def __str__(self):
         return "Client " + super().__str__()

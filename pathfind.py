@@ -1,5 +1,4 @@
 import queue
-import subprocess
 import sys
 
 def createMaze(size):
@@ -116,8 +115,8 @@ def findEnd(maze, moves):
             j += 1
 
     if maze[j][i] == "X":
-        print("Found: " + moves)
-        printMaze(maze, moves)
+        #print("Found: " + moves)
+        #printMaze(maze, moves)
         return True
 
     return False
@@ -138,7 +137,7 @@ def main_pathfinding(size, start, end):
     maze[start_row][start_col] = "O"
     maze[end_row][end_col] = "X"
 
-    printMaze(maze)
+    #printMaze(maze)
 
 
     while not findEnd(maze, add):
@@ -150,20 +149,4 @@ def main_pathfinding(size, start, end):
                 nums.put(put)
     return add
 
-size = 7
-agent1_coords = [1, 1]
-agent1_dest = [4, 3]
-path = (main_pathfinding(size, agent1_coords, agent1_dest))
-
-inp = 'taxi 1 '+str(agent1_coords[0]) + ' ' + str(agent1_coords[1])+'\n'
-inp2 = 'taxi 2 '+str(agent1_coords[0] + 1) + ' ' + str(agent1_coords[1] + 1)+'\n'
-proc = subprocess.Popen([sys.executable, 'env.py', str(size), str(size)],
-                        stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        universal_newlines=True)
-print(inp)
-print(inp2)
-proc.stdin.write(inp)
-proc.stdin.write(inp2)
 
