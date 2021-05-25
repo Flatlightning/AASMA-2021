@@ -1,5 +1,5 @@
 from enum import Enum
-import pathfind 
+import a_star
 import math
 import numpy as np
 import random as rand
@@ -49,15 +49,27 @@ class Taxi(Agent):
         return self.__str__()
 
     def up(self):
+        self.board.update_log_text("MOVE TAXI - ID: " + str(self.identifier) + "; (" +
+                    str(self.x) + ", " + str(self.y) + ") -> (" +
+                    str(self.x) + ", " + str(self.y-1) + ")\n")
         self.y -= 1
 
     def down(self):
+        self.board.update_log_text("MOVE TAXI - ID: " + str(self.identifier) + "; (" +
+                    str(self.x) + ", " + str(self.y) + ") -> (" +
+                    str(self.x) + ", " + str(self.y+1) + ")\n")        
         self.y += 1
 
     def left(self):
+        self.board.update_log_text("MOVE TAXI - ID: " + str(self.identifier) + "; (" +
+                    str(self.x) + ", " + str(self.y) + ") -> (" +
+                    str(self.x-1) + ", " + str(self.y) + ")\n") 
         self.x -= 1
 
     def right(self):
+        self.board.update_log_text("MOVE TAXI - ID: " + str(self.identifier) + "; (" +
+                    str(self.x) + ", " + str(self.y) + ") -> (" +
+                    str(self.x+1) + ", " + str(self.y) + ")\n")
         self.x += 1
     
     def calculate_quadrants(self):
@@ -82,7 +94,7 @@ class Taxi(Agent):
         return x + (self.board.size[0]/self.quadrant_size) * y
     
     def find_path(self, goal_x, goal_y):
-        self.path = pathfind.main_pathfinding(self.board.board_size[0], [self.x, self.y], [goal_x, goal_y])
+        self.path = a_star.path_find(self.x, self.y, goal_x,  goal_y, self.board.board_size[0])
     
     def decide_waiting_spot(self):
         chosen_quadrant = np.random.choice(self.quadrants, p = (self.quadrant_probabilities/self.quadrant_probabilities.sum()))
@@ -153,6 +165,8 @@ class Taxi(Agent):
         if self.state == TaxiState.pickup:
             self.move_next_pos()
             if self.path == '':
+                self.board.update_board()
+                self.board.update_log_text("TAXI - ID: " + str(self.identifier) + " PICKED UP CLIENT ON (" + str(self.current_client.x) +", "+ str(self.current_client.y) + ")\n")
                 self.state = TaxiState.dropoff
                 self.board.clients.pop((self.current_client.x, self.current_client.y))
                 self.find_path(self.current_client.goal_x, self.current_client.goal_y)
@@ -160,6 +174,7 @@ class Taxi(Agent):
         elif self.state == TaxiState.dropoff:
             self.move_next_pos()
             if self.path == '':
+                self.board.update_log_text("TAXI - ID: " + str(self.identifier) + " DROPPED CLIENT OFF\n")
                 self.state = TaxiState.free
                 self.current_client = None
 
