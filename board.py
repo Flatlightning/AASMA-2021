@@ -41,6 +41,9 @@ class Board(tk.Frame):
     def add_client(self, client):
         self.update_log_text("NEW CLIENT - (" + str(client.x) + ", " + str(client.y) + ")\n")
         self.clients[(client.x, client.y)] = client
+        self.update_board()
+        for taxi in self.taxis.values():
+            taxi.add_client(client)
 
     def update_board(self):
         # draw the grid
@@ -66,7 +69,7 @@ class Board(tk.Frame):
 
                 if taxi.state == TaxiState.free:
                     self.canvas.create_polygon(points, fill="orange")
-                elif taxi.state == TaxiState.occupied:
+                else:
                     self.canvas.create_polygon(points, fill="red")
 
                 self.canvas.create_text((x + SQUARE_SIDE / 4,
@@ -75,7 +78,7 @@ class Board(tk.Frame):
             else:
                 if taxi.state == TaxiState.free:
                     self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="orange")
-                elif taxi.state == TaxiState.occupied:
+                else:
                     self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="red")
 
                 self.canvas.create_text((x + SQUARE_SIDE / 2,

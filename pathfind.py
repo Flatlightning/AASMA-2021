@@ -98,7 +98,6 @@ def findEnd(maze, moves):
                 start_row = x
                 start_col = index
                 break
-
     i = start_row
     j = start_col
     for move in moves:
