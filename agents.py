@@ -155,10 +155,11 @@ class Taxi(Agent):
     def is_closest(self, client):
         my_dist = self.eucl_dist(client)
         for taxi in self.taxi_list.values():
-            if (taxi.eucl_dist(client) < my_dist):
-                return False
-            elif (taxi.eucl_dist(client) == my_dist and taxi.identifier < self.identifier):
-                return False
+            if (taxi.state == TaxiState.free):
+                if (taxi.eucl_dist(client) < my_dist):
+                    return False
+                elif (taxi.eucl_dist(client) == my_dist and taxi.identifier < self.identifier):
+                    return False
         return True
     
     def eucl_dist(self, client):
