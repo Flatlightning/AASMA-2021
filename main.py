@@ -24,7 +24,6 @@ def operations():
     #board.add_client(Client(2, 3, 3, 3))
     while True:
         client = input("Client? ")
-        print(type(client))
         if len(client) > 0:
             coords = input("Coordenadas do cliente: ")
             coords = coords.split(" ")
