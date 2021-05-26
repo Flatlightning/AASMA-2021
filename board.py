@@ -69,6 +69,7 @@ class Board(tk.Frame):
 
                 if taxi.state == TaxiState.free:
                     self.canvas.create_polygon(points, fill="orange")
+
                 else:
                     self.canvas.create_polygon(points, fill="red")
 
@@ -78,6 +79,11 @@ class Board(tk.Frame):
             else:
                 if taxi.state == TaxiState.free:
                     self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="orange")
+                
+                
+                elif taxi.state == TaxiState.waiting:
+                    self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="yellow")
+
                 else:
                     self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="red")
 
