@@ -10,6 +10,10 @@ class TaxiState(Enum):
     free = 3
     waiting = 4
 
+class ClientState(Enum):
+    unassigned = 1
+    assigned = 2
+
 
 class Agent:
     def __init__(self, x, y):
@@ -35,10 +39,12 @@ class Taxi(Agent):
         self.available_clients = {}
         self.last_clients = []
         self.board = board
-        self.quadrants = []
-        self.quadrant_size = 0
-        self.quadrant_probabilities = None
-        self.calculate_quadrants()
+        self.quadrant_probabilities = np.ones((len(self.board.quadrants),))
+        #tuple with assigned quadrant and position inside quadrant
+        self.assigned_quadrant = None
+        #works as a constant 
+        self.max_capacity = 4 
+        #maybe change this to board and save quadrants in board?
 
 
     def __str__(self):
@@ -71,48 +77,73 @@ class Taxi(Agent):
                     str(self.x) + ", " + str(self.y) + ") -> (" +
                     str(self.x+1) + ", " + str(self.y) + ")\n")
         self.x += 1
-    
-    def calculate_quadrants(self):
-        quadrant_area = self.board.board_size[0] * self.board.board_size[1]
-        count = 0
-        while not quadrant_area % 4:
-            quadrant_area = quadrant_area // 4
-            count += 2
-        self.quadrant_size = int(math.sqrt(quadrant_area))     
-        pos_x = 0                                         
-        for i in range(count):
-            pos_y = 0
-            for i in range(count):
-                self.quadrants += [Quadrant(pos_x, pos_y,pos_x + self.quadrant_size - 1, pos_y + self.quadrant_size - 1)]
-                pos_y += self.quadrant_size
-            pos_x += self.quadrant_size
-        self.quadrant_probabilities = np.ones((len(self.quadrants),))
 
-    def in_quadrant(self, client):
-        x = client.x // self.quadrant_size
-        y = client.y // self.quadrant_size
-        return (x + (self.board.board_size[0]//self.quadrant_size) * y)
+    def in_quadrant(self, agent):
+        x = agent.x // self.board.quadrant_size
+        y = agent.y // self.board.quadrant_size
+        return (x + (self.board.board_size[0]//self.board.quadrant_size) * y)
     
-    def find_path(self, goal_x, goal_y):
-        self.path = a_star.path_find(self.x, self.y, goal_x,  goal_y, self.board.board_size[0])
-    
+    def is_quadrant_full(self, quadrant_index):
+        count = 0
+        for t in self.taxi_list.values():
+            if t.state == TaxiState.waiting and self.in_quadrant(t) == quadrant_index:
+                count += 1
+            if count == self.max_capacity:
+                return True
+        
+        return False
+
     def decide_waiting_spot(self):
-        chosen_quadrant = np.random.choice(self.quadrants, p = (self.quadrant_probabilities/self.quadrant_probabilities.sum()))
-        print(chosen_quadrant)
-        x = rand.randrange(chosen_quadrant.x_start, chosen_quadrant.x_end)
-        y = rand.randrange(chosen_quadrant.y_start, chosen_quadrant.y_end)
-        print(x,y)
-        return (x,y)
+
+        #create a dictionary of quadrants and respective number of assigned taxis
+        quadrants_capacity = {}
+        for i in range(len(self.board.quadrants)):
+            quadrants_capacity[i] = 0
+        
+        #fill quadrant capacity structure
+        for t in self.taxi_list:
+            if t.assigned_quadrant:
+                quadrants_capacity[t.assigned_quadrant[0]] += 1
+        
+        #update quadrant probabilities so it doesn't include full quadrants
+        biased_probabilities = self.quadrant_probabilities.copy()
+        for q in quadrants_capacity.keys():
+            if quadrants_capacity[q] == self.max_capacity:
+                biased_probabilities[q] = 0
+        
+        #choose a possible quadrant and position inside said quadrant to wait for a client
+
+        #check if there is a near taxi finishing a ride near the chosen position
+        #if so, assign the chosen position to the other driver and choose another position to wait in
+        
+        while not self.assigned_quadrant:
+            chosen_quadrant_id = np.random.choice(range(len(self.board.quadrants)), p = (biased_probabilities/biased_probabilities.sum()))
+            chosen_quadrant = self.board.quadrants[chosen_quadrant_id]
+            chosen_pos = (rand.randrange(chosen_quadrant.x_start, chosen_quadrant.x_end), rand.randrange(chosen_quadrant.y_start, chosen_quadrant.y_end))
+            change_pos = False
+            for t in self.taxi_list:
+                if t.state == TaxiState.dropoff and self.eucl_dist(chosen_pos) > (t.eucl_dist(chosen_pos) + len(t.path)+ 1 ): # TODO add tolerance value
+                    t.assigned_quadrant = (chosen_quadrant_id, chosen_pos)
+                    #update capacities with most recent assignment
+                    quadrants_capacity[chosen_quadrant_id] += 1
+                    if quadrants_capacity[chosen_quadrant_id] == self.max_capacity:
+                        biased_probabilities[chosen_quadrant_id] = 0
+                    change_pos = True
+            if not change_pos:
+                self.assigned_quadrant = (chosen_quadrant_id, chosen_pos)
+        
+        print ("assigned quadrant: ", self.assigned_quadrant)
+        return
 
     def update_waiting_matrix(self, client):
-        update_value = len(self.quadrants)
+        update_value = len(self.board.quadrants)
         self.last_clients += [client]
-        print(self.quadrant_probabilities)
+        print("quadrant probabilities", self.quadrant_probabilities)
         self.quadrant_probabilities[(self.in_quadrant(client))] += update_value
         oldest_client = None
 
         # remove old information from probabilities 
-        if len(self.last_clients) > 10:
+        if len(self.last_clients) > 15:
             oldest_client = self.last_clients[0]
             self.quadrant_probabilities[(self.in_quadrant(oldest_client))] -= update_value
             self.last_clients = self.last_clients[1:]
@@ -121,6 +152,18 @@ class Taxi(Agent):
 
     def pickup_client(self, client):
         self.current_client = client
+        self.assigned_quadrant = None
+        self.find_path(self.current_client.x, self.current_client.y)
+        for taxi in self.taxi_list.values():
+            taxi.remove_available_client(client)
+        self.remove_available_client(client)
+        client.state = ClientState.assigned
+
+    def dropoff_client(self):
+        self.current_client = None
+
+    def find_path(self, goal_x, goal_y):
+        self.path = a_star.path_find(self.x, self.y, goal_x,  goal_y, self.board.board_size[0])
 
     def move_next_pos(self):
         if len(self.path) == 1:
@@ -137,10 +180,6 @@ class Taxi(Agent):
         elif move == 'D':
             self.down()
         
-
-    
-    #def receive_available_client(self, client):
-    #    self.available_clients += [client]
     
     def add_taxi(self, taxi):
         self.taxi_list[taxi.identifier] = taxi
@@ -153,7 +192,7 @@ class Taxi(Agent):
         self.available_clients.pop((client.x, client.y))
     
     def is_closest(self, client):
-        my_dist = self.eucl_dist(client)
+        my_dist = self.eucl_dist((client.x, client.y))
         for taxi in self.taxi_list.values():
             if (taxi.state == TaxiState.free):
                 if (taxi.eucl_dist(client) < my_dist):
@@ -162,10 +201,23 @@ class Taxi(Agent):
                     return False
         return True
     
-    def eucl_dist(self, client):
-        return math.sqrt(pow((self.x - client.x),2) + pow((self.y - client.y), 2))
+    def eucl_dist(self, pos):
+        return math.sqrt(pow((self.x - pos[0]),2) + pow((self.y - pos[1]), 2))
 
+    def check_new_clients(self):
+        for c in self.board.clients.values():
+            if c.state == ClientState.unassigned:
+                if not c in self.available_clients.values():
+                    print("added ", c)
+                    self.add_client(c)
+
+            elif not c in self.last_clients:
+                self.update_waiting_matrix(c)
+
+    
     def decision_making(self):
+        print(self.state)
+        self.check_new_clients()
         if self.state == TaxiState.pickup:
             self.move_next_pos()
             if self.path == '':
@@ -175,23 +227,23 @@ class Taxi(Agent):
                 self.board.clients.pop((self.current_client.x, self.current_client.y))
                 self.find_path(self.current_client.goal_x, self.current_client.goal_y)
                 
-        elif self.state == TaxiState.dropoff:
-            self.move_next_pos()
+        elif self.state == TaxiState.dropoff:      
             if self.path == '':
+                self.dropoff_client()
                 self.board.update_log_text("TAXI - ID: " + str(self.identifier) + " DROPPED CLIENT OFF\n")
                 self.state = TaxiState.free
-                self.current_client = None
+                if (self.assigned_quadrant):
+                    self.find_path(self.assigned_quadrant[1][0], self.assigned_quadrant[1][0])
+            else:
+                self.move_next_pos()
 
         else:
+            print(self.available_clients)
             if self.available_clients:
                 for c in self.available_clients.values():
                     if(self.is_closest(c)):
+                        self.pickup_client(c)
                         self.state = TaxiState.pickup
-                        self.current_client = c
-                        self.find_path(self.current_client.x, self.current_client.y)
-                        for taxi in self.taxi_list.values():
-                            taxi.remove_available_client(c)
-                        self.remove_available_client(c)
                         self.move_next_pos()
                         break
             if self.state == TaxiState.free:
@@ -199,8 +251,8 @@ class Taxi(Agent):
                     self.move_next_pos()
                     self.state = TaxiState.waiting
                 elif self.path == '':
-                    wait_pos = self.decide_waiting_spot()
-                    self.find_path(wait_pos[0], wait_pos[1])
+                    self.decide_waiting_spot()
+                    self.find_path(self.assigned_quadrant[1][0], self.assigned_quadrant[1][1])
                 else:
                     self.move_next_pos()
 
@@ -209,6 +261,7 @@ class Client(Agent):
         super().__init__(x, y)
         self.goal_x = goal_x
         self.goal_y = goal_y
+        self.state = ClientState.unassigned
 
     def __str__(self):
         return "Client " + super().__str__()
