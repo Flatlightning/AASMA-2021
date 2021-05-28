@@ -152,9 +152,10 @@ class Taxi(Agent): #reactionary agent with no communication with other agents
 
         else:
             self.find_closest_client()
-            if (self.path):
+            if (self.current_client):
                 self.state = TaxiState.pickup
-                self.move_next_pos()
+                if (self.path):
+                    self.move_next_pos()
 
 class SmartTaxi(Taxi):
     def __init__(self, x, y, identifier, board):
@@ -287,14 +288,14 @@ class SmartTaxi(Taxi):
         print(self.state)
         self.check_new_clients()
         if self.state == TaxiState.pickup:
-            self.move_next_pos()
             if self.path == '':
                 self.board.update_board()
                 self.board.update_log_text("TAXI - ID: " + str(self.identifier) + " PICKED UP CLIENT ON (" + str(self.current_client.x) +", "+ str(self.current_client.y) + ")\n")
                 self.state = TaxiState.dropoff
                 self.board.clients.pop((self.current_client.x, self.current_client.y))
                 self.find_path(self.current_client.goal_x, self.current_client.goal_y)
-                
+            else:
+                self.move_next_pos()
         elif self.state == TaxiState.dropoff:      
             if self.path == '':
                 self.dropoff_client()
@@ -312,7 +313,8 @@ class SmartTaxi(Taxi):
                     if(self.is_closest(c)):
                         self.pickup_client(c)
                         self.state = TaxiState.pickup
-                        self.move_next_pos()
+                        if (self.path):
+                            self.move_next_pos()
                         break
             if self.state == TaxiState.free:
                 if len(self.path) == 1:
@@ -384,7 +386,7 @@ class RandomTaxi(Taxi):
 
             else:
                 self.move_next_pos()
-                
+
         elif self.state == TaxiState.dropoff:      
             if self.path == '':
                 self.dropoff_client()
@@ -400,7 +402,8 @@ class RandomTaxi(Taxi):
                     if(self.is_closest(c)):
                         self.pickup_client(c)
                         self.state = TaxiState.pickup
-                        self.move_next_pos()
+                        if (self.path):
+                            self.move_next_pos()
                         break
             if self.state == TaxiState.free:
                 if len(self.path) == 1:
@@ -483,7 +486,8 @@ class ClosestTaxi(Taxi):
                     if(self.is_closest(c)):
                         self.pickup_client(c)
                         self.state = TaxiState.pickup
-                        self.move_next_pos()
+                        if (self.path):
+                            self.move_next_pos()
                         break
 
 class Client(Agent):
