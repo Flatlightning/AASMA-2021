@@ -270,12 +270,13 @@ class SmartTaxi(Taxi):
             chosen_pos = (rand.randrange(chosen_quadrant.x_start, chosen_quadrant.x_end), rand.randrange(chosen_quadrant.y_start, chosen_quadrant.y_end))
             change_pos = False
             for t in self.taxi_list.values():
-                if t.state == TaxiState.dropoff and (not t.assigned_quadrant) and self.eucl_dist(chosen_pos) > (t.eucl_dist(chosen_pos) + len(t.path)+ 1 ): # TODO add tolerance value
+                if t.state == TaxiState.dropoff and (not t.assigned_quadrant) and self.eucl_dist(chosen_pos) > (t.eucl_dist(chosen_pos) + len(t.path)+ 4): # TODO add tolerance value
                     t.assigned_quadrant = (chosen_quadrant_id, chosen_pos)
                     #update capacities with most recent assignment
                     quadrants_capacity[chosen_quadrant_id] += 1
                     if quadrants_capacity[chosen_quadrant_id] == self.max_capacity:
                         biased_probabilities[chosen_quadrant_id] = 0
+                    print("assigned position: " + str(chosen_pos) + " in quadrant: " + str(chosen_quadrant_id) + "to taxi: " + str(t.identifier))
                     change_pos = True
             if not change_pos:
                 self.assigned_quadrant = (chosen_quadrant_id, chosen_pos)
