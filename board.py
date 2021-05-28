@@ -143,8 +143,6 @@ class Board(tk.Frame):
                                          y + SQUARE_SIDE / 2),
                                         text=str(taxi.identifier))
 
-        self.after(1000)
-
     def update_log_text(self, log_text):
         self.log_text.insert("end", log_text)
 
