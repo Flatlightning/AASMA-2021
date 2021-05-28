@@ -1,6 +1,8 @@
 import tkinter as tk
 from agents import *
 import math
+import random
+import numpy as np
 
 SQUARE_SIDE = 30
 QUADRANT_COLOR_1 = "#cbe8f5"
@@ -32,6 +34,7 @@ class Board(tk.Frame):
         self.clients = {}
         self.quadrants = []
         self.quadrant_size = board_size[0]
+        self.focus_quadrants = []
         self.calculate_quadrants()
         # draw the grid
         self.update_board()
@@ -55,12 +58,29 @@ class Board(tk.Frame):
         self.update_board()
 
     def add_client(self, client):
-        self.update_log_text("NEW CLIENT - (" + str(client.x) + ", " + str(client.y) + ")\n")
+        while ((client.x, client.y) in self.clients.keys()):
+            client.x, client.y = random.randrange(self.board_size[0]), random.randrange(self.board_size[1])
         self.clients[(client.x, client.y)] = client
+        self.update_log_text("NEW CLIENT - (" + str(client.x) + ", " + str(client.y) + ")\n")
         self.update_board()
     
     def generate_random_client(self):
-        return
+        generate_client = random.random()
+        in_focus_quadrant = random.random()
+        x, y = 0, 0
+        if (generate_client > 0.2): #don't create client
+            return
+        print("generated clien")
+        if (in_focus_quadrant <= 0.7): #create client in_focus_quadrant
+            print("focus quad")
+            focus_quadrants_p = np.ones((len(self.focus_quadrants),))
+            chosen_generation_quadrant =  np.random.choice(self.focus_quadrants, p = focus_quadrants_p/focus_quadrants_p.sum())
+            (x, y) = (random.randrange(chosen_generation_quadrant.x_start, chosen_generation_quadrant.x_end), random.randrange(chosen_generation_quadrant.y_start, chosen_generation_quadrant.y_end))
+        else:
+            (x, y) = (random.randrange(self.board_size[0]), random.randrange(self.board_size[1]))
+        new_client = Client(x, y, random.randrange(self.board_size[0]), random.randrange(self.board_size[1]))
+        self.add_client(new_client)
+
 
     def update_board(self):
         # draw the grid

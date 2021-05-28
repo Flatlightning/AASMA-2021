@@ -223,7 +223,7 @@ class SmartTaxi(Taxi):
         oldest_client = None
 
         # remove old information from probabilities 
-        if len(self.last_clients) > 15:
+        if len(self.last_clients) > 10:
             oldest_client = self.last_clients[0]
             self.quadrant_probabilities[(self.in_quadrant(oldest_client))] -= update_value
             self.last_clients = self.last_clients[1:]
