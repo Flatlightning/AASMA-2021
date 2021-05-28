@@ -106,11 +106,13 @@ class Board(tk.Frame):
                                         text=str(taxi.identifier))
             else:
                 if taxi.state == TaxiState.free:
-                    self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="orange")
-                
-                
+                    self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="lightgreen")
+                     
                 elif taxi.state == TaxiState.waiting:
                     self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="yellow")
+
+                elif taxi.state == TaxiState.pickup:
+                    self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="orange")
 
                 else:
                     self.canvas.create_rectangle(x, y, x + SQUARE_SIDE, y + SQUARE_SIDE, fill="red")

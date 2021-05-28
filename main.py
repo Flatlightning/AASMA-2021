@@ -18,7 +18,7 @@ def operations(size):
     for i in range(int(nTaxis)):
         coords = input("Coordenadas do taxi " + str(i+1) + ": ")
         coords = coords.split(" ")
-        board.add_taxi(Taxi(int(coords[0]), int(coords[1]), i+1, board))
+        board.add_taxi(RandomTaxi(int(coords[0]), int(coords[1]), i+1, board))
     
     for taxi in board.taxis.values():
         for taxi2 in board.taxis.values():
