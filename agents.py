@@ -276,12 +276,10 @@ class SmartTaxi(Taxi):
                     quadrants_capacity[chosen_quadrant_id] += 1
                     if quadrants_capacity[chosen_quadrant_id] == self.max_capacity:
                         biased_probabilities[chosen_quadrant_id] = 0
-                    print("assigned position: " + str(chosen_pos) + " in quadrant: " + str(chosen_quadrant_id) + "to taxi: " + str(t.identifier))
                     change_pos = True
             if not change_pos:
                 self.assigned_quadrant = (chosen_quadrant_id, chosen_pos)
         
-        print ("assigned quadrant: ", self.assigned_quadrant)
         return
 
     
@@ -375,7 +373,6 @@ class RandomTaxi(Taxi):
     def decide_waiting_spot(self):
         #create a dictionary of quadrants and respective number of assigned taxis
         self.assigned_waiting_spot = (rand.randrange(self.board.board_size[0]), rand.randrange(self.board.board_size[1]))
-        print ("assigned position: ", self.assigned_waiting_spot)
 
     def decision_making(self):
         self.check_new_clients()
