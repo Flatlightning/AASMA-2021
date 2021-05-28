@@ -257,6 +257,7 @@ class SmartTaxi(Taxi):
         biased_probabilities = self.quadrant_probabilities.copy()
         for q in quadrants_capacity.keys():
             if quadrants_capacity[q] == self.max_capacity:
+                print("tava cheio")
                 biased_probabilities[q] = 0
         
         #choose a possible quadrant and position inside said quadrant to wait for a client
@@ -309,13 +310,19 @@ class SmartTaxi(Taxi):
         else:
             print(self.available_clients)
             if self.available_clients:
+                possible_client = None
                 for c in self.available_clients.values():
-                    if(self.is_closest(c)):
-                        self.pickup_client(c)
-                        self.state = TaxiState.pickup
-                        if (self.path):
-                            self.move_next_pos()
-                        break
+                    if(self.is_closest(c)): #checks if he's the closest taxi to client 'c'
+                        # from these cases, pick the one closest to him
+                        if ((not possible_client) or (self.eucl_dist((c.x, c.y)) < self.eucl_dist((possible_client.x,possible_client.y)))): 
+                            possible_client = c
+                
+                if (possible_client): #is the closest taxi to a certain client
+                    self.pickup_client(c)
+                    self.state = TaxiState.pickup
+                    if (self.path):
+                        self.move_next_pos()
+
             if self.state == TaxiState.free:
                 if len(self.path) == 1:
                     self.move_next_pos()
@@ -398,13 +405,19 @@ class RandomTaxi(Taxi):
         else:
             print(self.available_clients)
             if self.available_clients:
+                possible_client = None
                 for c in self.available_clients.values():
-                    if(self.is_closest(c)):
-                        self.pickup_client(c)
-                        self.state = TaxiState.pickup
-                        if (self.path):
-                            self.move_next_pos()
-                        break
+                    if(self.is_closest(c)): #checks if he's the closest taxi to client 'c'
+                        # from these cases, pick the one closest to him
+                        if ((not possible_client) or (self.eucl_dist((c.x, c.y)) < self.eucl_dist((possible_client.x,possible_client.y)))): 
+                            possible_client = c
+                
+                if (possible_client): #is the closest taxi to a certain client
+                    self.pickup_client(c)
+                    self.state = TaxiState.pickup
+                    if (self.path):
+                        self.move_next_pos()
+
             if self.state == TaxiState.free:
                 if len(self.path) == 1:
                     self.move_next_pos()
@@ -482,13 +495,18 @@ class ClosestTaxi(Taxi):
         else:
             print(self.available_clients)
             if self.available_clients:
+                possible_client = None
                 for c in self.available_clients.values():
-                    if(self.is_closest(c)):
-                        self.pickup_client(c)
-                        self.state = TaxiState.pickup
-                        if (self.path):
-                            self.move_next_pos()
-                        break
+                    if(self.is_closest(c)): #checks if he's the closest taxi to client 'c'
+                        # from these cases, pick the one closest to him
+                        if ((not possible_client) or (self.eucl_dist((c.x, c.y)) < self.eucl_dist((possible_client.x,possible_client.y)))): 
+                            possible_client = c
+                
+                if (possible_client): #is the closest taxi to a certain client
+                    self.pickup_client(c)
+                    self.state = TaxiState.pickup
+                    if (self.path):
+                        self.move_next_pos()
 
 class Client(Agent):
     def __init__(self, x, y, goal_x, goal_y):
