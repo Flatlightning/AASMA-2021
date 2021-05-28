@@ -71,6 +71,8 @@ class Taxi(Agent): #reactionary agent with no communication with other agents
 
     def pickup_client(self): 
         if ((self.current_client.x, self.current_client.y) in self.board.clients.keys()):
+                self.board.average_waiting_time = (self.board.average_waiting_time * self.board.picked_up_clients + self.current_client.waiting_time) / (self.board.picked_up_clients + 1)
+                self.board.picked_up_clients += 1
                 self.board.clients.pop((self.current_client.x, self.current_client.y))
                 self.find_path(self.current_client.goal_x, self.current_client.goal_y)
         else:
@@ -82,6 +84,7 @@ class Taxi(Agent): #reactionary agent with no communication with other agents
         client.state = ClientState.assigned
 
     def dropoff_client(self):
+        self.board.finished_rides += 1
         self.current_client = None
 
     def find_path(self, goal_x, goal_y):
@@ -120,7 +123,6 @@ class Taxi(Agent): #reactionary agent with no communication with other agents
             if self.path == '':
                 self.board.update_board()
                 self.pickup_client()
-                print(self, self.current_client)
                 if (self.current_client):
                     self.board.update_log_text("TAXI - ID: " + str(self.identifier) + " PICKED UP CLIENT ON (" + str(self.current_client.x) +", "+ str(self.current_client.y) + ")\n")
                     self.state = TaxiState.dropoff
@@ -170,7 +172,7 @@ class SmartTaxi(Taxi):
         self.max_capacity = 4 
         #maybe change this to board and save quadrants in board?
 
-    def pickup_client(self, client):
+    def goto_client(self, client):
         self.current_client = client
         self.assigned_quadrant = None
         self.find_path(self.current_client.x, self.current_client.y)
@@ -218,7 +220,6 @@ class SmartTaxi(Taxi):
     def update_waiting_matrix(self, client):
         update_value = len(self.board.quadrants)
         self.last_clients += [client]
-        print("quadrant probabilities", self.quadrant_probabilities)
         self.quadrant_probabilities[(self.in_quadrant(client))] += update_value
         oldest_client = None
 
@@ -235,7 +236,6 @@ class SmartTaxi(Taxi):
         for c in self.board.clients.values():
             if c.state == ClientState.unassigned:
                 if not c in self.available_clients.values():
-                    print("added ", c)
                     self.add_client(c)
 
             elif not c in self.last_clients:
@@ -257,7 +257,6 @@ class SmartTaxi(Taxi):
         biased_probabilities = self.quadrant_probabilities.copy()
         for q in quadrants_capacity.keys():
             if quadrants_capacity[q] == self.max_capacity:
-                print("tava cheio")
                 biased_probabilities[q] = 0
         
         #choose a possible quadrant and position inside said quadrant to wait for a client
@@ -271,7 +270,7 @@ class SmartTaxi(Taxi):
             chosen_pos = (rand.randrange(chosen_quadrant.x_start, chosen_quadrant.x_end), rand.randrange(chosen_quadrant.y_start, chosen_quadrant.y_end))
             change_pos = False
             for t in self.taxi_list.values():
-                if t.state == TaxiState.dropoff and self.eucl_dist(chosen_pos) > (t.eucl_dist(chosen_pos) + len(t.path)+ 1 ): # TODO add tolerance value
+                if t.state == TaxiState.dropoff and (not t.assigned_quadrant) and self.eucl_dist(chosen_pos) > (t.eucl_dist(chosen_pos) + len(t.path)+ 1 ): # TODO add tolerance value
                     t.assigned_quadrant = (chosen_quadrant_id, chosen_pos)
                     #update capacities with most recent assignment
                     quadrants_capacity[chosen_quadrant_id] += 1
@@ -286,15 +285,13 @@ class SmartTaxi(Taxi):
 
     
     def decision_making(self):
-        print(self.state)
         self.check_new_clients()
         if self.state == TaxiState.pickup:
             if self.path == '':
                 self.board.update_board()
+                self.pickup_client()
                 self.board.update_log_text("TAXI - ID: " + str(self.identifier) + " PICKED UP CLIENT ON (" + str(self.current_client.x) +", "+ str(self.current_client.y) + ")\n")
                 self.state = TaxiState.dropoff
-                self.board.clients.pop((self.current_client.x, self.current_client.y))
-                self.find_path(self.current_client.goal_x, self.current_client.goal_y)
             else:
                 self.move_next_pos()
         elif self.state == TaxiState.dropoff:      
@@ -308,7 +305,6 @@ class SmartTaxi(Taxi):
                 self.move_next_pos()
 
         else:
-            print(self.available_clients)
             if self.available_clients:
                 possible_client = None
                 for c in self.available_clients.values():
@@ -318,7 +314,7 @@ class SmartTaxi(Taxi):
                             possible_client = c
                 
                 if (possible_client): #is the closest taxi to a certain client
-                    self.pickup_client(c)
+                    self.goto_client(c)
                     self.state = TaxiState.pickup
                     if (self.path):
                         self.move_next_pos()
@@ -350,7 +346,7 @@ class RandomTaxi(Taxi):
         if ((client.x, client.y) in self.available_clients.keys()):
             self.available_clients.pop((client.x, client.y))
 
-    def pickup_client(self, client):
+    def goto_client(self, client):
         self.current_client = client
         self.assigned_waiting_pos = None
         self.find_path(self.current_client.x, self.current_client.y)
@@ -386,11 +382,9 @@ class RandomTaxi(Taxi):
             
             if self.path == '':
                 self.board.update_board()
+                self.pickup_client()
                 self.board.update_log_text("TAXI - ID: " + str(self.identifier) + " PICKED UP CLIENT ON (" + str(self.current_client.x) +", "+ str(self.current_client.y) + ")\n")
                 self.state = TaxiState.dropoff
-                self.board.clients.pop((self.current_client.x, self.current_client.y))
-                self.find_path(self.current_client.goal_x, self.current_client.goal_y)
-
             else:
                 self.move_next_pos()
 
@@ -403,7 +397,6 @@ class RandomTaxi(Taxi):
                 self.move_next_pos()
 
         else:
-            print(self.available_clients)
             if self.available_clients:
                 possible_client = None
                 for c in self.available_clients.values():
@@ -413,7 +406,7 @@ class RandomTaxi(Taxi):
                             possible_client = c
                 
                 if (possible_client): #is the closest taxi to a certain client
-                    self.pickup_client(c)
+                    self.goto_client(c)
                     self.state = TaxiState.pickup
                     if (self.path):
                         self.move_next_pos()
@@ -445,7 +438,7 @@ class ClosestTaxi(Taxi):
         if ((client.x, client.y) in self.available_clients.keys()):
             self.available_clients.pop((client.x, client.y))
 
-    def pickup_client(self, client):
+    def goto_client(self, client):
         self.current_client = client
         self.assigned_quadrant = None
         self.find_path(self.current_client.x, self.current_client.y)
@@ -471,16 +464,13 @@ class ClosestTaxi(Taxi):
                     self.add_client(c)
 
     def decision_making(self):
-        print(self.state)
         self.check_new_clients()
         if self.state == TaxiState.pickup:    
             if self.path == '':
                 self.board.update_board()
+                self.pickup_client()
                 self.board.update_log_text("TAXI - ID: " + str(self.identifier) + " PICKED UP CLIENT ON (" + str(self.current_client.x) +", "+ str(self.current_client.y) + ")\n")
-                self.state = TaxiState.dropoff
-                self.board.clients.pop((self.current_client.x, self.current_client.y))
-                self.find_path(self.current_client.goal_x, self.current_client.goal_y)
-                
+                self.state = TaxiState.dropoff                
             else:
                 self.move_next_pos()
                 
@@ -493,7 +483,6 @@ class ClosestTaxi(Taxi):
                 self.move_next_pos()
 
         else:
-            print(self.available_clients)
             if self.available_clients:
                 possible_client = None
                 for c in self.available_clients.values():
@@ -503,7 +492,7 @@ class ClosestTaxi(Taxi):
                             possible_client = c
                 
                 if (possible_client): #is the closest taxi to a certain client
-                    self.pickup_client(c)
+                    self.goto_client(c)
                     self.state = TaxiState.pickup
                     if (self.path):
                         self.move_next_pos()
@@ -514,6 +503,7 @@ class Client(Agent):
         self.goal_x = goal_x
         self.goal_y = goal_y
         self.state = ClientState.unassigned
+        self.waiting_time = 0
 
     def __str__(self):
         return "Client " + super().__str__()
@@ -521,12 +511,16 @@ class Client(Agent):
     def __repr__(self):
         return self.__str__()
 
+    def wait(self):
+        self.waiting_time += 1
+
 class Quadrant():
     def __init__(self, x0, y0, x1, y1):
         self.x_start = x0
         self.x_end = x1
         self.y_start = y0
         self.y_end = y1
+
 
     def __str__(self):
         return "x between: " + str(self.x_start) + " and " + str(self.x_end) + " y between: " + str(self.y_start) + " and " + str(self.y_end)

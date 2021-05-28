@@ -15,8 +15,7 @@ def operations(size):
     agent_type = input("Agent Type: ")
     nTaxis = input("Number of Taxis: ")
     random_generation = False
-    random_clients = {}
-    clients_coords = []
+    max_timesteps = 0
     if (agent_type == "1"):
         for i in range(int(nTaxis)):
             coords = input("Taxi coordinates" + str(i+1) + ": ")
@@ -64,7 +63,6 @@ def operations(size):
         board.focus_quadrants += [board.quadrants[int(fst_focus_ind)]]
         if (snd_focus_ind):
             board.focus_quadrants += [board.quadrants[int(snd_focus_ind)]]
-
 #-------------------------------------- RANDOM PIPELINE GENERATION--------------------------------------------
 
         #timesteps = input("Execution Time (in timesteps): ")
@@ -96,12 +94,17 @@ def operations(size):
 
     elif rnd == "no":
         random_generation = False
+    max_aux = input("Inser Execution Time (number of timesteps): ")
+    max_timesteps = int(max_aux)
+
     timestep = 0
-    while True:
+    while timestep < max_timesteps:
         input("timestep: " + str(timestep))
         if random_generation:
             board.generate_random_client()
             board.update_board()
+            for client in board.clients.values():
+                client.wait()
             for taxi in board.taxis.values():
                 taxi.decision_making()
             board.update_board()
@@ -114,10 +117,17 @@ def operations(size):
                 destination = input("Client destination: ")
                 destination = destination.split(" ")
                 board.add_client(Client(int(coords[0]), int(coords[1]), int(destination[0]), int(destination[1])))
+            for client in board.clients.values():
+                client.wait()
             for taxi in board.taxis.values():
                 taxi.decision_making()
             board.update_board()
         timestep += 1
+    print("End of Execution\nFinal performance results:")
+    print("Average waiting time: " + str(board.average_waiting_time))
+    print("Finished rides: " + str(board.finished_rides))
+    board.master.destroy()
+
 
 size = input("Grid size: ")
 root = tk.Tk()

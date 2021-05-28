@@ -35,6 +35,10 @@ class Board(tk.Frame):
         self.quadrants = []
         self.quadrant_size = board_size[0]
         self.focus_quadrants = []
+        self.finished_rides = 0
+        self.picked_up_clients = 0
+        self.average_waiting_time = 0
+        
         self.calculate_quadrants()
         # draw the grid
         self.update_board()
@@ -70,9 +74,7 @@ class Board(tk.Frame):
         x, y = 0, 0
         if (generate_client > 0.2): #don't create client
             return
-        print("generated clien")
         if (in_focus_quadrant <= 0.7): #create client in_focus_quadrant
-            print("focus quad")
             focus_quadrants_p = np.ones((len(self.focus_quadrants),))
             chosen_generation_quadrant =  np.random.choice(self.focus_quadrants, p = focus_quadrants_p/focus_quadrants_p.sum())
             (x, y) = (random.randrange(chosen_generation_quadrant.x_start, chosen_generation_quadrant.x_end), random.randrange(chosen_generation_quadrant.y_start, chosen_generation_quadrant.y_end))
